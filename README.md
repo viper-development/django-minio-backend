@@ -22,10 +22,13 @@ MINIO_ENDPOINT = 'minio.yourcompany.co.uk'
 MINIO_ACCESS_KEY = 'yourMinioAccessKey'
 MINIO_SECRET_KEY = 'yourVeryS3cr3tP4ssw0rd'
 MINIO_USE_HTTPS = True
-MINIO_PRIVATE_BUCKET_NAME = 'my-app-private'
-MINIO_PUBLIC_BUCKET_NAME = 'my-app-public'
+MINIO_PRIVATE_BUCKET_NAMES = ['my-app-private']
+MINIO_PUBLIC_BUCKET_NAMES = ['my-app-public']
 MINIO_URL_EXPIRY_HOURS = timedelta(days=1)
 ```
+
+The first element of `MINIO_PUBLIC_BUCKET_NAMES` or `MINIO_PRIVATE_BUCKET_NAMES` is the default bucket that will
+be used when you use just the `is_public` flag.
 
 4. Implement your own Attachment handler and integrate django-minio-backend:
 ```python

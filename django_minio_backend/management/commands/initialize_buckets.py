@@ -10,5 +10,8 @@ class Command(BaseCommand):
         m = MinioBackend()
         m.check_bucket_existences()
         self.stdout.write(f"Private and public backends have been checked/created")
-        m.set_bucket_to_public(bucket_name=m.MINIO_PUBLIC_BUCKET_NAME)
+
+        for bucket in m.MINIO_PUBLIC_BUCKET_NAMES:
+            m.set_bucket_to_public(bucket_name=bucket)
+
         self.stdout.write(f"Public backend policy have been updated")

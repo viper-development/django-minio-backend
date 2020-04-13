@@ -46,8 +46,8 @@ class MinioBackend(Storage):
         self.MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
         self.MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
-        self.MINIO_PRIVATE_BUCKET_NAME: str = get_setting("MINIO_PRIVATE_BUCKET_NAME", "")
-        self.MINIO_PUBLIC_BUCKET_NAME: str = get_setting("MINIO_PUBLIC_BUCKET_NAME", "")
+        self.MINIO_PRIVATE_BUCKET_NAMES: str = get_setting("MINIO_PRIVATE_BUCKET_NAMES", [])
+        self.MINIO_PUBLIC_BUCKET_NAMES: str = get_setting("MINIO_PUBLIC_BUCKET_NAMES", [])
         self.IS_PUBLIC: bool = kwargs.get("is_public", False)
         self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = kwargs.get("http_client", None)  # https://docs.min.io/docs/python-client-api-reference.html
         self._client: Union[Minio, None] = None
@@ -200,15 +200,15 @@ class MinioBackend(Storage):
         # Safety Guards
         if self._BUCKET and self.IS_PUBLIC:
             raise AttributeError("You cannot set both `bucket` and `is_public`!")
-        if not self.MINIO_PRIVATE_BUCKET_NAME or not self.MINIO_PUBLIC_BUCKET_NAME:
-            raise AttributeError("MINIO_PRIVATE_BUCKET_NAME or MINIO_PUBLIC_BUCKET_NAME is not configured properly.")
+        if not self.MINIO_PRIVATE_BUCKET_NAMES or not self.MINIO_PUBLIC_BUCKET_NAMES:
+            raise AttributeError("MINIO_PRIVATE_BUCKET_NAMES or MINIO_PUBLIC_BUCKET_NAMES is not configured properly.")
 
         if self._BUCKET:
             pass  # We optimistically trust the bucket name here
         elif self.IS_PUBLIC:
-            self._BUCKET = self.MINIO_PUBLIC_BUCKET_NAME
+            self._BUCKET = self.MINIO_PUBLIC_BUCKET_NAMES[0]
         elif not self.IS_PUBLIC:
-            self._BUCKET = self.MINIO_PRIVATE_BUCKET_NAME
+            self._BUCKET = self.MINIO_PRIVATE_BUCKET_NAMES[0]
 
         minio_client = Minio(
             endpoint=self.MINIO_ENDPOINT,
@@ -221,10 +221,13 @@ class MinioBackend(Storage):
 
     # MAINTENANCE
     def check_bucket_existences(self):  # Execute this handler upon starting Django to make sure buckets exist
-        if not self.client.bucket_exists(self.MINIO_PRIVATE_BUCKET_NAME):
-            self.client.make_bucket(bucket_name=self.MINIO_PRIVATE_BUCKET_NAME)
-        if not self.client.bucket_exists(self.MINIO_PUBLIC_BUCKET_NAME):
-            self.client.make_bucket(bucket_name=self.MINIO_PUBLIC_BUCKET_NAME)
+        for bucket in self.MINIO_PRIVATE_BUCKET_NAMES:
+            if not self.client.bucket_exists(bucket):
+                self.client.make_bucket(bucket_name=bucket)
+
+        for bucket in self.MINIO_PUBLIC_BUCKET_NAMES:
+            if not self.client.bucket_exists(bucket):
+                self.client.make_bucket(bucket_name=bucket)
 
     def set_bucket_to_public(self, bucket_name):
         policy_read_only = {"Version": "2012-10-17",
